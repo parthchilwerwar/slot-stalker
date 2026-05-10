@@ -101,6 +101,7 @@ export async function PATCH(
 }
 
 function isValidTimeRange(start: string, end: string): boolean {
+  if (!isValidTime(start) || !isValidTime(end)) return false;
   const toMinutes = (time: string) => {
     const [h, m] = time.split(':').map(Number);
     return h * 60 + m;
