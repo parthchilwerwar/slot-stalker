@@ -81,7 +81,8 @@ export function isValidTime(value: unknown): value is string {
 }
 
 export function isValidGuestCount(value: unknown, maxGuests: number): value is number {
-  return Number.isInteger(value) && (value as number) > 0 && (value as number) <= maxGuests;
+  if (typeof value !== 'number') return false;
+  return Number.isInteger(value) && value > 0 && value <= maxGuests;
 }
 
 function normalizeUserId(value: string | null): string | null {

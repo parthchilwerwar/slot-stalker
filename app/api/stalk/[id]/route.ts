@@ -87,7 +87,7 @@ export async function PATCH(
   }
 
   if (Object.keys(allowedRequestUpdates).length === 0) {
-    return jsonError('No valid updates provided', 400);
+    return jsonError('No valid request updates provided', 400);
   }
 
   const mergedRequest = { ...stalk.request, ...allowedRequestUpdates };
@@ -111,7 +111,7 @@ function isValidTimeRange(start: string, end: string): boolean {
 
 function extractRequestUpdates(updates: unknown): Partial<StalkRequest> {
   if (!updates || typeof updates !== 'object') return {};
-  const request = (updates as { request?: unknown }).request ?? updates;
+  const request = (updates as { request?: unknown }).request;
   if (!request || typeof request !== 'object' || Array.isArray(request)) return {};
   return request as Partial<StalkRequest>;
 }

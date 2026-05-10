@@ -46,8 +46,12 @@ export async function POST(req: NextRequest) {
       return jsonError('restaurantId does not match the stalk', 400);
     }
 
-    if (!stalk.foundSlot || stalk.foundSlot !== slot) {
-      return jsonError('slot does not match the available slot for this stalk', 400);
+    if (!stalk.foundSlot) {
+      return jsonError('No available slot found for this stalk', 400);
+    }
+
+    if (stalk.foundSlot !== slot) {
+      return jsonError('Requested slot does not match the available slot', 400);
     }
 
     const result = await bookSlot(stalkId, slot, restaurantId);
