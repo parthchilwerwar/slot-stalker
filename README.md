@@ -46,7 +46,7 @@ By default, the application runs in **Demo Mode**:
 
 ### API Access Controls
 The API routes now expect a user context header:
-- Send `X-User-Id` with every request to scope stalks per user.
+- Send `x-user-id` with every request to scope stalks per user.
 - In demo mode, the server falls back to `demo_user` when no header is supplied.
 - In non-demo mode, configure `SLOT_STALKER_API_TOKEN` and send it via `Authorization: Bearer <token>` or `X-API-Key`.
 
