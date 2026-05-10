@@ -35,15 +35,18 @@ export async function checkRateLimit(
     const entry = store.entries.get(key);
     if (!entry || now > entry.resetAt) {
       store.entries.set(key, { count: 1, resetAt: now + windowMs });
-      return { allowed: true, retryAfterSeconds: Math.ceil(windowMs / 1000) };
+      return { allowed: true, retryAfterSeconds: 0 };
     }
 
     const nextEntry = { count: entry.count + 1, resetAt: entry.resetAt };
     store.entries.set(key, nextEntry);
 
-    const retryAfterSeconds = Math.ceil(Math.max(nextEntry.resetAt - now, 0) / 1000);
+    const allowed = nextEntry.count <= limit;
+    const retryAfterSeconds = allowed
+      ? 0
+      : Math.ceil(Math.max(nextEntry.resetAt - now, 0) / 1000);
     return {
-      allowed: nextEntry.count <= limit,
+      allowed,
       retryAfterSeconds,
     };
   });

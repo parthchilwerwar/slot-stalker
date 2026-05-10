@@ -8,6 +8,7 @@ import {
   requireUser,
   isSafeId,
   isValidTime,
+  isValidGuestCount,
 } from '@/lib/api-guards';
 import type { StalkRequest } from '@/lib/types';
 
@@ -85,7 +86,7 @@ export async function PATCH(
   if (isValidTime(requestUpdates.preferredTo)) {
     allowedRequestUpdates.preferredTo = requestUpdates.preferredTo;
   }
-  if (Number.isInteger(requestUpdates.guests) && requestUpdates.guests > 0 && requestUpdates.guests <= MAX_GUESTS) {
+  if (isValidGuestCount(requestUpdates.guests, MAX_GUESTS)) {
     allowedRequestUpdates.guests = requestUpdates.guests;
   }
 

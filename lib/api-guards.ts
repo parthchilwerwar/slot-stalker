@@ -75,6 +75,10 @@ export function isValidTime(value: unknown): value is string {
   return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
 }
 
+export function isValidGuestCount(value: unknown, maxGuests: number): value is number {
+  return Number.isInteger(value) && (value as number) > 0 && (value as number) <= maxGuests;
+}
+
 function normalizeUserId(value: string | null): string | null {
   if (!value) return null;
   const trimmed = value.trim();
