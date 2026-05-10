@@ -11,6 +11,8 @@ import {
 } from '@/lib/api-guards';
 import type { StalkRequest } from '@/lib/types';
 
+const MAX_GUESTS = 20;
+
 export async function GET(
   req: NextRequest,
   props: { params: Promise<{ id: string }> }
@@ -24,7 +26,7 @@ export async function GET(
     return jsonError('Invalid stalk id', 400);
   }
 
-  const rate = checkRateLimit(`${auth.userId}:stalk:get`, 60, 60_000);
+  const rate = await checkRateLimit(`${auth.userId}:stalk:get`, 60, 60_000);
   if (!rate.allowed) {
     return rateLimitError(rate.retryAfterSeconds);
   }
@@ -52,7 +54,7 @@ export async function PATCH(
     return jsonError('Invalid stalk id', 400);
   }
 
-  const rate = checkRateLimit(`${auth.userId}:stalk:patch`, 20, 60_000);
+  const rate = await checkRateLimit(`${auth.userId}:stalk:patch`, 20, 60_000);
   if (!rate.allowed) {
     return rateLimitError(rate.retryAfterSeconds);
   }
@@ -70,7 +72,9 @@ export async function PATCH(
     return jsonError('Invalid JSON body', 400);
   }
 
-  const requestUpdates = typeof updates.request === 'object' && updates.request
+  const requestUpdates = typeof updates.request === 'object'
+    && updates.request
+    && !Array.isArray(updates.request)
     ? updates.request as Partial<StalkRequest>
     : {};
 
@@ -81,7 +85,7 @@ export async function PATCH(
   if (isValidTime(requestUpdates.preferredTo)) {
     allowedRequestUpdates.preferredTo = requestUpdates.preferredTo;
   }
-  if (Number.isInteger(requestUpdates.guests) && requestUpdates.guests > 0 && requestUpdates.guests <= 20) {
+  if (Number.isInteger(requestUpdates.guests) && requestUpdates.guests > 0 && requestUpdates.guests <= MAX_GUESTS) {
     allowedRequestUpdates.guests = requestUpdates.guests;
   }
 

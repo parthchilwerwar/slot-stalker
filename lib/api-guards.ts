@@ -43,8 +43,10 @@ export function requireUser(
     : null;
   const fallbackUserId = normalizeUserId(options?.fallbackUserId ?? null);
 
-  const userId =
-    headerUserId || (DEMO_MODE ? (fallbackUserId || queryUserId || 'demo_user') : null);
+  let userId = headerUserId;
+  if (!userId && DEMO_MODE) {
+    userId = fallbackUserId || queryUserId || 'demo_user';
+  }
 
   if (!userId) {
     return { error: jsonError('userId is required', 400) };

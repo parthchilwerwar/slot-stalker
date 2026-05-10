@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const auth = requireUser(req);
     if ('error' in auth) return auth.error;
 
-    const rate = checkRateLimit(`${auth.userId}:book`, 10, 60_000);
+    const rate = await checkRateLimit(`${auth.userId}:book`, 10, 60_000);
     if (!rate.allowed) {
       return rateLimitError(rate.retryAfterSeconds);
     }

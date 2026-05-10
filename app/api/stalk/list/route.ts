@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const auth = requireUser(req, { allowQuery: true });
   if ('error' in auth) return auth.error;
 
-  const rate = checkRateLimit(`${auth.userId}:stalk:list`, 30, 60_000);
+  const rate = await checkRateLimit(`${auth.userId}:stalk:list`, 30, 60_000);
   if (!rate.allowed) {
     return rateLimitError(rate.retryAfterSeconds);
   }
