@@ -1,15 +1,11 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  --color-brand: #FC5019;
-  --color-brand-dark: #E8470F;
-  --color-brand-tint: #FFF1EC;
-  --color-ink: #0A0A0A;
-  --color-surface: #111111;
-  --color-surface-2: #1A1A1A;
-  --color-rim: #242424;
-  --color-subtle: #6B6B6B;
-  --color-faint: #9A9A9A;
-  --font-sans: 'DM Sans', sans-serif;
-  --font-serif: 'Instrument Serif', Georgia, serif;
+@layer base {
+  body {
+    background-color: var(--color-surface);
+    color: white;
+  }
 }
+
