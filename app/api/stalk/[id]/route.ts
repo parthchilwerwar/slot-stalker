@@ -73,11 +73,7 @@ export async function PATCH(
     return jsonError('Invalid JSON body', 400);
   }
 
-  const requestUpdates = typeof updates.request === 'object'
-    && updates.request
-    && !Array.isArray(updates.request)
-    ? updates.request as Partial<StalkRequest>
-    : {};
+  const requestUpdates = extractRequestUpdates(updates);
 
   const allowedRequestUpdates: Partial<StalkRequest> = {};
   if (isValidTime(requestUpdates.preferredFrom)) {
@@ -110,4 +106,11 @@ function isValidTimeRange(start: string, end: string): boolean {
     return h * 60 + m;
   };
   return toMinutes(start) < toMinutes(end);
+}
+
+function extractRequestUpdates(updates: unknown): Partial<StalkRequest> {
+  if (!updates || typeof updates !== 'object') return {};
+  const request = (updates as { request?: unknown }).request;
+  if (!request || typeof request !== 'object' || Array.isArray(request)) return {};
+  return request as Partial<StalkRequest>;
 }

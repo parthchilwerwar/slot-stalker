@@ -82,8 +82,7 @@ export function isValidGuestCount(value: unknown, maxGuests: number): value is n
 function normalizeUserId(value: string | null): string | null {
   if (!value) return null;
   const trimmed = value.trim();
-  if (!trimmed || trimmed.length > 64) return null;
-  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) return null;
+  if (!isSafeId(trimmed)) return null;
   return trimmed;
 }
 
