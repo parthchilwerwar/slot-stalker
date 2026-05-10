@@ -1,5 +1,7 @@
 # Slot Stalker — Swiggy Dineout MCP Agent
 
+![Slot Stalker Showcase](image.png)
+
 Slot Stalker is an AI-powered conversational web agent designed to help users effortlessly find, track, and manage restaurant reservations. Built for the **Swiggy Builders Club**, it leverages LLMs and the Swiggy Dineout MCP (Model Context Protocol) to parse natural language queries, automatically execute booking workflows, and continuously monitor unavailable slots until a table opens up.
 
 ## How It Works
