@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createStalk } from '@/lib/agent';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { jsonError, rateLimitError, requireUser, isNonEmptyString } from '@/lib/api-guards';
+import { jsonError, rateLimitError, requireUser, normalizeString } from '@/lib/api-guards';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
       return jsonError('Invalid JSON body', 400);
     }
 
-    const rawText = typeof body.rawText === 'string' ? body.rawText : '';
-    if (!isNonEmptyString(rawText, 1000)) {
+    const rawText = normalizeString(body.rawText, 1000);
+    if (!rawText) {
       return jsonError('rawText is required and must be under 1000 characters', 400);
     }
 
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       return rateLimitError(rate.retryAfterSeconds);
     }
 
-    const result = await createStalk(rawText.trim(), auth.userId);
+    const result = await createStalk(rawText, auth.userId);
     return NextResponse.json(result);
   } catch (error) {
     console.error('Create stalk error:', error);

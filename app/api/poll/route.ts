@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return jsonError('Invalid JSON body', 400);
     }
 
-    const stalkId = body.stalkId;
+    const stalkId = typeof body.stalkId === 'string' ? body.stalkId.trim() : '';
     if (!isSafeId(stalkId)) {
       return jsonError('stalkId is required', 400);
     }

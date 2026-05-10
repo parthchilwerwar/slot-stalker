@@ -8,7 +8,7 @@ import {
   rateLimitError,
   requireUser,
   isSafeId,
-  isNonEmptyString,
+  normalizeString,
 } from '@/lib/api-guards';
 
 export async function POST(req: NextRequest) {
@@ -18,9 +18,11 @@ export async function POST(req: NextRequest) {
       return jsonError('Invalid JSON body', 400);
     }
 
-    const { stalkId, slot, restaurantId } = body;
+    const stalkId = typeof body.stalkId === 'string' ? body.stalkId.trim() : '';
+    const restaurantId = typeof body.restaurantId === 'string' ? body.restaurantId.trim() : '';
+    const slot = normalizeString(body.slot, 40);
 
-    if (!isSafeId(stalkId) || !isSafeId(restaurantId) || !isNonEmptyString(slot, 40)) {
+    if (!isSafeId(stalkId) || !isSafeId(restaurantId) || !slot) {
       return jsonError('stalkId, slot, and restaurantId are required', 400);
     }
 

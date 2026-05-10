@@ -62,10 +62,15 @@ export function isSafeId(value: unknown, maxLength = 64): value is string {
   return /^[a-zA-Z0-9_-]+$/.test(trimmed);
 }
 
-export function isNonEmptyString(value: unknown, maxLength = 2000): value is string {
-  if (typeof value !== 'string') return false;
+export function normalizeString(value: unknown, maxLength = 2000): string | null {
+  if (typeof value !== 'string') return null;
   const trimmed = value.trim();
-  return trimmed.length > 0 && trimmed.length <= maxLength;
+  if (!trimmed || trimmed.length > maxLength) return null;
+  return trimmed;
+}
+
+export function isNonEmptyString(value: unknown, maxLength = 2000): value is string {
+  return normalizeString(value, maxLength) !== null;
 }
 
 export function isValidTime(value: unknown): value is string {

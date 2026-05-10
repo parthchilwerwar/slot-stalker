@@ -111,7 +111,7 @@ function isValidTimeRange(start: string, end: string): boolean {
 
 function extractRequestUpdates(updates: unknown): Partial<StalkRequest> {
   if (!updates || typeof updates !== 'object') return {};
-  const request = (updates as { request?: unknown }).request;
+  const request = (updates as { request?: unknown }).request ?? updates;
   if (!request || typeof request !== 'object' || Array.isArray(request)) return {};
   return request as Partial<StalkRequest>;
 }
