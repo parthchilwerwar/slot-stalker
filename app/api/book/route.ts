@@ -1,17 +1,51 @@
 // POST /api/book — Confirm a table reservation
 import { NextRequest, NextResponse } from 'next/server';
 import { bookSlot } from '@/lib/agent';
+import { getStalk } from '@/lib/state';
+import { checkRateLimit } from '@/lib/rate-limit';
+import {
+  jsonError,
+  rateLimitError,
+  requireUser,
+  isSafeId,
+  isNonEmptyString,
+} from '@/lib/api-guards';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return jsonError('Invalid JSON body', 400);
+    }
+
     const { stalkId, slot, restaurantId } = body;
 
-    if (!stalkId || !slot || !restaurantId) {
+    if (!isSafeId(stalkId) || !isSafeId(restaurantId) || !isNonEmptyString(slot, 40)) {
+      return jsonError('stalkId, slot, and restaurantId are required', 400);
+    }
+
+    const auth = requireUser(req);
+    if ('error' in auth) return auth.error;
+
+    const rate = checkRateLimit(`${auth.userId}:book`, 10, 60_000);
+    if (!rate.allowed) {
+      return rateLimitError(rate.retryAfterSeconds);
+    }
+
+    const stalk = getStalk(stalkId);
+    if (!stalk || stalk.userId !== auth.userId) {
       return NextResponse.json(
-        { success: false, error: 'stalkId, slot, and restaurantId are required' },
-        { status: 400 }
+        { success: false, error: 'Stalk not found' },
+        { status: 404 }
       );
+    }
+
+    if (stalk.restaurantId !== restaurantId) {
+      return jsonError('restaurantId does not match the stalk', 400);
+    }
+
+    if (!stalk.foundSlot || stalk.foundSlot !== slot) {
+      return jsonError('slot does not match the available slot for this stalk', 400);
     }
 
     const result = await bookSlot(stalkId, slot, restaurantId);
