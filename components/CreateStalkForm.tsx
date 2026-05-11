@@ -7,6 +7,8 @@ interface CreateStalkFormProps {
   onCreated?: () => void;
 }
 
+const DEMO_USER_ID = 'demo_user';
+
 export default function CreateStalkForm({ onCreated }: CreateStalkFormProps) {
   const [rawText, setRawText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,8 +31,8 @@ export default function CreateStalkForm({ onCreated }: CreateStalkFormProps) {
     try {
       const res = await fetch('/api/stalk/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawText, userId: 'demo_user' }),
+        headers: { 'Content-Type': 'application/json', 'x-user-id': DEMO_USER_ID },
+        body: JSON.stringify({ rawText }),
       });
       const data = await res.json();
 

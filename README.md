@@ -44,6 +44,12 @@ By default, the application runs in **Demo Mode**:
 - Uses simulated Swiggy MCP responses (`lib/mock-mcp.ts`), in-memory state, and mock restaurant data to prevent live API hits.
 - Perfect for UI testing and evaluating the agent logic and scoring algorithms.
 
+### API Access Controls
+The API routes now expect a user context header:
+- Send `x-user-id` with every request to scope stalks per user.
+- In demo mode, the server falls back to `demo_user` when no header is supplied.
+- In non-demo mode, configure `SLOT_STALKER_API_TOKEN` and send it via `Authorization: Bearer <token>` or `X-API-Key`.
+
 To connect to the **Real Swiggy Dineout MCP**:
 - Set `NEXT_PUBLIC_DEMO_MODE=false`.
 - Provide `SWIGGY_DINEOUT_MCP_URL`, `SWIGGY_CLIENT_ID`, and `SWIGGY_CLIENT_SECRET` in `.env.local`.

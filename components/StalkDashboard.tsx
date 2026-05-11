@@ -17,6 +17,8 @@ const FILTERS: { label: string; value: FilterState; icon: string }[] = [
   { label: 'Expired', value: 'EXPIRED', icon: '⏰' },
 ];
 
+const DEMO_USER_ID = 'demo_user';
+
 export default function StalkDashboard() {
   const [stalks, setStalks] = useState<StalkRecord[]>([]);
   const [filter, setFilter] = useState<FilterState>('ALL');
@@ -26,7 +28,10 @@ export default function StalkDashboard() {
 
   const fetchStalks = useCallback(async () => {
     try {
-      const res = await fetch('/api/stalk/list?userId=demo_user', { cache: 'no-store' });
+      const res = await fetch('/api/stalk/list', {
+        cache: 'no-store',
+        headers: { 'x-user-id': DEMO_USER_ID },
+      });
       const data = await res.json();
       if (data.success) {
         setStalks(data.stalks);
@@ -47,7 +52,7 @@ export default function StalkDashboard() {
     try {
       const res = await fetch('/api/poll', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': DEMO_USER_ID },
         body: JSON.stringify({ stalkId }),
       });
       const data = await res.json();
@@ -64,7 +69,7 @@ export default function StalkDashboard() {
   const handleBook = async (stalkId: string, slot: string, restaurantId: string) => {
     const res = await fetch('/api/book', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-user-id': DEMO_USER_ID },
       body: JSON.stringify({ stalkId, slot, restaurantId }),
     });
     const data = await res.json();

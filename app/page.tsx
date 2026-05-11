@@ -7,13 +7,18 @@ import { StalkRecord } from '@/lib/types';
 import { mockStalks } from '@/lib/mock-data';
 import StalkCard from '@/components/StalkCard';
 
+const DEMO_USER_ID = 'demo_user';
+
 export default function DashboardPage() {
   const [stalks, setStalks] = useState<StalkRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStalks = useCallback(async () => {
     try {
-      const res = await fetch('/api/stalk/list?userId=demo_user', { cache: 'no-store' });
+      const res = await fetch('/api/stalk/list', {
+        cache: 'no-store',
+        headers: { 'x-user-id': DEMO_USER_ID },
+      });
       const data = await res.json();
       if (data.success) {
         setStalks(data.stalks);
