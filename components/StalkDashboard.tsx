@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { StalkRecord } from '@/lib/types';
 import StalkCard from './StalkCard';
 import BookingConfirm from './BookingConfirm';
@@ -17,6 +17,8 @@ const FILTERS: { label: string; value: FilterState; icon: string }[] = [
   { label: 'Expired', value: 'EXPIRED', icon: '⏰' },
 ];
 
+const DEMO_USER_ID = 'demo_user';
+
 export default function StalkDashboard() {
   const [stalks, setStalks] = useState<StalkRecord[]>([]);
   const [filter, setFilter] = useState<FilterState>('ALL');
@@ -24,30 +26,35 @@ export default function StalkDashboard() {
   const [bookingStalk, setBookingStalk] = useState<StalkRecord | null>(null);
   const [expandedStalk, setExpandedStalk] = useState<string | null>(null);
 
-  const fetchStalks = useCallback(async () => {
-    try {
-      const res = await fetch('/api/stalk/list?userId=demo_user', { cache: 'no-store' });
-      const data = await res.json();
-      if (data.success) {
-        setStalks(data.stalks);
-      }
-    } catch (err) {
-      console.error('Failed to fetch stalks:', err);
-    }
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    fetchStalks();
-    const interval = setInterval(fetchStalks, 10000);
-    return () => clearInterval(interval);
-  }, [fetchStalks]);
+    let active = true;
+    const fetchStalks = async () => {
+      const res = await fetch('/api/stalk/list', {
+        cache: 'no-store',
+        headers: { 'x-user-id': DEMO_USER_ID },
+      });
+      return res.json();
+    };
+    const refresh = () => {
+      void fetchStalks()
+        .then(data => { if (active && data.success) setStalks(data.stalks); })
+        .catch(err => console.error('Failed to fetch stalks:', err))
+        .finally(() => { if (active) setLoading(false); });
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const handlePoll = async (stalkId: string) => {
     try {
       const res = await fetch('/api/poll', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': DEMO_USER_ID },
         body: JSON.stringify({ stalkId }),
       });
       const data = await res.json();
@@ -64,7 +71,7 @@ export default function StalkDashboard() {
   const handleBook = async (stalkId: string, slot: string, restaurantId: string) => {
     const res = await fetch('/api/book', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-user-id': DEMO_USER_ID },
       body: JSON.stringify({ stalkId, slot, restaurantId }),
     });
     const data = await res.json();

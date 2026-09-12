@@ -1,36 +1,42 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LuPlus, LuSettings, LuHistory } from 'react-icons/lu';
 import { StalkRecord } from '@/lib/types';
 import { mockStalks } from '@/lib/mock-data';
 import StalkCard from '@/components/StalkCard';
 
+const DEMO_USER_ID = 'demo_user';
+
 export default function DashboardPage() {
   const [stalks, setStalks] = useState<StalkRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchStalks = useCallback(async () => {
-    try {
-      const res = await fetch('/api/stalk/list?userId=demo_user', { cache: 'no-store' });
-      const data = await res.json();
-      if (data.success) {
-        setStalks(data.stalks);
-      } else {
-        setStalks(mockStalks);
-      }
-    } catch {
-      setStalks(mockStalks);
-    }
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    fetchStalks();
-    const interval = setInterval(fetchStalks, 10000);
-    return () => clearInterval(interval);
-  }, [fetchStalks]);
+    let active = true;
+    const fetchStalks = async () => {
+      const res = await fetch('/api/stalk/list', {
+        cache: 'no-store',
+        headers: { 'x-user-id': DEMO_USER_ID },
+      });
+      const data = await res.json();
+      return data.success ? data.stalks : mockStalks;
+    };
+    const refresh = () => {
+      void fetchStalks()
+        .then(data => { if (active) setStalks(data); })
+        .catch(() => { if (active) setStalks(mockStalks); })
+        .finally(() => { if (active) setLoading(false); });
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Split into 3 sections
   const watching = stalks.filter((s) => s.state === 'WATCHING' || s.state === 'SLOT_FOUND');

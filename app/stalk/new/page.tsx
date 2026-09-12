@@ -12,6 +12,8 @@ const examplePills = [
   'Farmlore Bangalore, next weekend, 6 people, 7pm',
 ];
 
+const DEMO_USER_ID = 'demo_user';
+
 function formatTime(time24: string): string {
   const [h, m] = time24.split(':').map(Number);
   const ampm = h >= 12 ? 'PM' : 'AM';
@@ -39,8 +41,8 @@ export default function NewStalkPage() {
     try {
       const res = await fetch('/api/stalk/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawText, userId: 'demo_user' }),
+        headers: { 'Content-Type': 'application/json', 'x-user-id': DEMO_USER_ID },
+        body: JSON.stringify({ rawText }),
       });
       const data = await res.json();
 
