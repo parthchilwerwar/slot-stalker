@@ -73,6 +73,10 @@ export async function PATCH(
     return jsonError('Invalid JSON body', 400);
   }
 
+  if (stalk.state !== 'WATCHING') {
+    return jsonError('Only watching stalks can have their preferences updated', 409);
+  }
+
   const requestUpdates = extractRequestUpdates(updates);
 
   const allowedRequestUpdates: Partial<StalkRequest> = {};

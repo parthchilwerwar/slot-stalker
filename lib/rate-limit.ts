@@ -12,6 +12,7 @@ const store = (() => {
   const globalStore = globalThis as typeof globalThis & {
     __slotStalkerRateLimit?: Map<string, RateLimitEntry>;
     __slotStalkerRateLimitLocks?: Map<string, Promise<void>>;
+    __slotStalkerRateLimitCleanup?: ReturnType<typeof setInterval>;
   };
   if (!globalStore.__slotStalkerRateLimit) {
     globalStore.__slotStalkerRateLimit = new Map<string, RateLimitEntry>();
@@ -19,8 +20,20 @@ const store = (() => {
   if (!globalStore.__slotStalkerRateLimitLocks) {
     globalStore.__slotStalkerRateLimitLocks = new Map<string, Promise<void>>();
   }
+  const entries = globalStore.__slotStalkerRateLimit;
+  // Reclaim abandoned users' windows without requiring another request from them.
+  // Keep one unreferenced timer across hot reloads so it cannot hold Node open.
+  if (!globalStore.__slotStalkerRateLimitCleanup) {
+    globalStore.__slotStalkerRateLimitCleanup = setInterval(() => {
+      const now = Date.now();
+      for (const [key, entry] of entries) {
+        if (now >= entry.resetAt) entries.delete(key);
+      }
+    }, 60_000);
+    globalStore.__slotStalkerRateLimitCleanup.unref();
+  }
   return {
-    entries: globalStore.__slotStalkerRateLimit,
+    entries,
     locks: globalStore.__slotStalkerRateLimitLocks,
   };
 })();
@@ -33,7 +46,7 @@ export async function checkRateLimit(
   return withLock(key, () => {
     const now = Date.now();
     const entry = store.entries.get(key);
-    if (!entry || now > entry.resetAt) {
+    if (!entry || now >= entry.resetAt) {
       store.entries.set(key, { count: 1, resetAt: now + windowMs });
       return { allowed: true, retryAfterSeconds: 0 };
     }
@@ -58,14 +71,15 @@ async function withLock<T>(key: string, fn: () => T): Promise<T> {
   const next = new Promise<void>(resolve => {
     release = resolve;
   });
-  store.locks.set(key, previous.then(() => next));
+  const queued = previous.then(() => next);
+  store.locks.set(key, queued);
 
   await previous;
   try {
     return fn();
   } finally {
     release?.();
-    if (store.locks.get(key) === next) {
+    if (store.locks.get(key) === queued) {
       store.locks.delete(key);
     }
   }

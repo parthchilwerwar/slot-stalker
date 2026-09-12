@@ -91,15 +91,14 @@ function StateBadge({ state }: { state: StalkRecord['state'] }) {
 }
 
 // Countdown hook
-function useCountdown(seconds: number) {
-  const [remaining, setRemaining] = useState(seconds);
+function useCountdown(initialSeconds: number) {
+  const [remaining, setRemaining] = useState(initialSeconds);
   useEffect(() => {
-    setRemaining(seconds);
     const interval = setInterval(() => {
       setRemaining((r) => (r > 0 ? r - 1 : 0));
     }, 1000);
     return () => clearInterval(interval);
-  }, [seconds]);
+  }, []);
 
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
@@ -107,20 +106,16 @@ function useCountdown(seconds: number) {
 }
 
 // Poll progress bar
-function PollProgressBar({ pollCount, state }: { pollCount: number; state: StalkRecord['state'] }) {
-  const countdown = useCountdown(state === 'WATCHING' ? 180 : 0);
+function PollProgressBar({ pollCount }: { pollCount: number }) {
+  const countdown = useCountdown(180);
   const [progress, setProgress] = useState(100);
 
   useEffect(() => {
-    if (state !== 'WATCHING') return;
-    setProgress(100);
     const interval = setInterval(() => {
       setProgress((p) => Math.max(0, p - 100 / 180));
     }, 1000);
     return () => clearInterval(interval);
-  }, [state, pollCount]);
-
-  if (state !== 'WATCHING') return null;
+  }, []);
 
   return (
     <div className="mt-3">
@@ -267,7 +262,9 @@ export default function StalkCard({ stalk, onBook }: StalkCardProps) {
           </div>
         </div>
 
-        <PollProgressBar pollCount={stalk.pollCount} state={stalk.state} />
+        {stalk.state === 'WATCHING' && (
+          <PollProgressBar key={stalk.pollCount} pollCount={stalk.pollCount} />
+        )}
       </div>
 
       {/* Expanded */}

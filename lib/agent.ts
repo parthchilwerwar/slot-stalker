@@ -13,6 +13,8 @@ import { scoreAlternate } from './scoring';
 import { getStalk, saveStalk } from './state';
 import type { StalkRecord, Alternative } from './types';
 
+const bookingsInFlight = new Set<string>();
+
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 
 export async function createStalk(rawText: string, userId: string) {
@@ -131,6 +133,12 @@ export async function pollStalk(stalkId: string) {
   }
 
   const slots = await mock_get_available_slots(stalk.restaurantId, stalk.request.date, stalk.request.guests);
+  // Another poll may have selected a slot and a confirmation may have begun
+  // while this provider call was pending. Never apply that stale result.
+  if (getStalk(stalkId) !== stalk || stalk.state !== 'WATCHING') {
+    return { success: false, error: 'Stalk changed while polling' };
+  }
+
   const lastPoll = stalk.polls[stalk.polls.length - 1];
   const previousSlots = new Set(lastPoll?.slotsFound || []);
   const newSlots = slots.filter(s => !previousSlots.has(s));
@@ -162,33 +170,44 @@ export async function bookSlot(stalkId: string, slot: string, restaurantId: stri
     return { success: false, error: `Cannot book in state ${stalk.state}` };
   }
 
-  // 1. Create cart
-  const cart = await mock_create_cart(restaurantId, slot, stalk.request.guests, stalk.request.date);
+  // Acquire synchronously before the first await so a second confirmation
+  // cannot create another cart while this booking is still in progress.
+  if (bookingsInFlight.has(stalkId)) {
+    return { success: false, error: 'Booking already in progress' };
+  }
+  bookingsInFlight.add(stalkId);
+  try {
+    // 1. Create cart
+    const cart = await mock_create_cart(restaurantId, slot, stalk.request.guests, stalk.request.date);
 
-  // 2. Book table
-  const bookResult = await mock_book_table(cart.cartId);
+    // 2. Book table
+    const bookResult = await mock_book_table(cart.cartId);
 
-  if (bookResult.error) {
-    // Race condition — slot taken, go back to WATCHING
-    stalk.state = 'WATCHING';
-    stalk.slotFoundAt = null;
-    stalk.foundSlot = null;
+    if (bookResult.error) {
+      // Race condition — slot taken, go back to WATCHING
+      stalk.state = 'WATCHING';
+      stalk.slotFoundAt = null;
+      stalk.foundSlot = null;
+      saveStalk(stalk);
+      return { success: false, error: bookResult.error, stalk };
+    }
+
+    // 3. Verify booking
+    const status = await mock_get_booking_status(
+      bookResult.bookingId!,
+      stalk.request.restaurantName,
+      stalk.request.date,
+      slot,
+      stalk.request.guests
+    );
+
+    stalk.state = 'BOOKED';
+    stalk.bookingId = status.bookingId;
     saveStalk(stalk);
-    return { success: false, error: bookResult.error, stalk };
+
+    return { success: true, bookingId: status.bookingId, bookingStatus: status, stalk };
+  } finally {
+    bookingsInFlight.delete(stalkId);
   }
 
-  // 3. Verify booking
-  const status = await mock_get_booking_status(
-    bookResult.bookingId!,
-    stalk.request.restaurantName,
-    stalk.request.date,
-    slot,
-    stalk.request.guests
-  );
-
-  stalk.state = 'BOOKED';
-  stalk.bookingId = status.bookingId;
-  saveStalk(stalk);
-
-  return { success: true, bookingId: status.bookingId, bookingStatus: status, stalk };
 }

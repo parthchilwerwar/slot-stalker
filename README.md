@@ -11,7 +11,7 @@ Slot Stalker is an AI-powered conversational web agent designed to help users ef
 4. **Seamless Booking**: Transitions to `SLOT_FOUND` and eventually `BOOKED` upon user confirmation using Swiggy's Dineout API.
 
 ## Tech Stack
-- **Framework**: Next.js 16.2.6 (App Router)
+- **Framework**: Next.js 16.3.4 (App Router)
 - **UI**: React 19.2.x, Tailwind CSS 4.1.x, shadcn/ui
 - **Language**: TypeScript 5.8.x
 - **AI/LLMs**: Groq SDK (Intent Parsing), Anthropic SDK (MCP Orchestration)
@@ -45,12 +45,33 @@ By default, the application runs in **Demo Mode**:
 - Perfect for UI testing and evaluating the agent logic and scoring algorithms.
 
 ### API Access Controls
-The API routes now expect a user context header:
-- Send `x-user-id` with every request to scope stalks per user.
-- In demo mode, the server falls back to `demo_user` when no header is supplied.
-- In non-demo mode, configure `SLOT_STALKER_API_TOKEN` and send it via `Authorization: Bearer <token>` or `X-API-Key`.
+Non-demo API access uses one server-configured service principal per deployment:
+```dotenv
+NEXT_PUBLIC_DEMO_MODE=false
+SLOT_STALKER_API_TOKEN=<a-long-random-server-secret>
+SLOT_STALKER_API_USER_ID=alice
+```
+Send `Authorization: Bearer <token>` (or `X-API-Key`) and `x-user-id: alice`. The principal must be 1–64 letters, digits, underscores, or hyphens. Missing or invalid server configuration fails closed. A valid token with a different `x-user-id` receives `403`; query parameters and request bodies cannot override the principal. Restart the server after changing this configuration.
 
-To connect to the **Real Swiggy Dineout MCP**:
+This credential grants access only to its configured principal. Keep it on a trusted server; never expose it in browser code or a `NEXT_PUBLIC_*` variable. A proxy cannot use this shared token to select different users. Production multi-user access requires a separate authentication integration that derives each user's identity from a verified credential; that integration is not implemented here.
+
+The included browser UI is demo-only: it uses `demo_user`, sends no service token, and has no sign-in. For the local browser demo, set `NEXT_PUBLIC_DEMO_MODE=true` and leave both service settings empty. Demo identity headers and fallbacks exist solely for local simulation, with no user isolation guarantee. If a token is configured in demo mode, its principal and matching identity header are required as well.
+
+Rate limits, booking guards, and stalk records are stored per Node process. They are not shared across replicas or durable across restarts. Simultaneous booking confirmations for one stalk are rejected while its first booking is running; a durable store and provider idempotency are required before real multi-instance booking use.
+
+Preference edits through `PATCH /api/stalk/[id]` are allowed only while a stalk is `WATCHING`. Selected slots and completed bookings cannot have their party size or time changed through that endpoint.
+
+### Verification
+```bash
+npm test
+npm run typecheck
+npm run lint
+npm run build
+```
+The regression tests use local in-memory data and do not call Groq or live booking services.
+
+### Live service integration (not implemented)
+The agent currently calls `lib/mock-mcp.ts` even when demo mode is disabled. These settings are placeholders for a future Swiggy Dineout MCP integration:
 - Set `NEXT_PUBLIC_DEMO_MODE=false`.
 - Provide `SWIGGY_DINEOUT_MCP_URL`, `SWIGGY_CLIENT_ID`, and `SWIGGY_CLIENT_SECRET` in `.env.local`.
 

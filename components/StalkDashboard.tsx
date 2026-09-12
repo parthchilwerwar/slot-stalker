@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { StalkRecord } from '@/lib/types';
 import StalkCard from './StalkCard';
 import BookingConfirm from './BookingConfirm';
@@ -26,27 +26,29 @@ export default function StalkDashboard() {
   const [bookingStalk, setBookingStalk] = useState<StalkRecord | null>(null);
   const [expandedStalk, setExpandedStalk] = useState<string | null>(null);
 
-  const fetchStalks = useCallback(async () => {
-    try {
+  useEffect(() => {
+    let active = true;
+    const fetchStalks = async () => {
       const res = await fetch('/api/stalk/list', {
         cache: 'no-store',
         headers: { 'x-user-id': DEMO_USER_ID },
       });
-      const data = await res.json();
-      if (data.success) {
-        setStalks(data.stalks);
-      }
-    } catch (err) {
-      console.error('Failed to fetch stalks:', err);
-    }
-    setLoading(false);
-  }, []);
+      return res.json();
+    };
+    const refresh = () => {
+      void fetchStalks()
+        .then(data => { if (active && data.success) setStalks(data.stalks); })
+        .catch(err => console.error('Failed to fetch stalks:', err))
+        .finally(() => { if (active) setLoading(false); });
+    };
 
-  useEffect(() => {
-    fetchStalks();
-    const interval = setInterval(fetchStalks, 10000);
-    return () => clearInterval(interval);
-  }, [fetchStalks]);
+    refresh();
+    const interval = setInterval(refresh, 10000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const handlePoll = async (stalkId: string) => {
     try {

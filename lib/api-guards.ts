@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 const API_TOKEN = process.env.SLOT_STALKER_API_TOKEN;
+const API_USER_ID = normalizeUserId(process.env.SLOT_STALKER_API_USER_ID ?? null);
 
 const USER_ID_HEADER = 'x-user-id';
 const API_KEY_HEADER = 'x-api-key';
@@ -31,10 +32,22 @@ export function requireUser(
     if (!API_TOKEN) {
       return { error: jsonError('Server auth token is not configured', 500) };
     }
+    if (!API_USER_ID) {
+      return { error: jsonError('Server auth principal is not configured or invalid', 500) };
+    }
     const token = extractToken(req);
     if (!token || token !== API_TOKEN) {
       return { error: jsonError('Unauthorized', 401) };
     }
+    const assertedUserId = normalizeUserId(req.headers.get(USER_ID_HEADER));
+    if (!assertedUserId) {
+      return { error: jsonError('userId is required', 400) };
+    }
+    if (assertedUserId !== API_USER_ID) {
+      return { error: jsonError('User identity does not match the service principal', 403) };
+    }
+    // Credentials establish identity; caller-controlled fields cannot select it.
+    return { userId: API_USER_ID, demoMode: DEMO_MODE };
   }
 
   const headerUserId = normalizeUserId(req.headers.get(USER_ID_HEADER));
